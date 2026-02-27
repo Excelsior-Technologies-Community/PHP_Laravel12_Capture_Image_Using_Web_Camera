@@ -1,59 +1,283 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PHP_Laravel12_Capture_Image_Using_Web_Camera
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel">
+  <img src="https://img.shields.io/badge/WebcamJS-1.0.25-blue?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Image-Capture-success?style=for-the-badge">
 </p>
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+##  Overview  
+This project demonstrates how to **capture images from a webcam** using **WebcamJS** in Laravel and save them inside the `public/uploads` folder.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### ✔ No database needed  
+### ✔ Pure frontend + backend file saving  
+### ✔ Works on all major browsers  
+### ✔ Simple & developer-friendly  
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+##  Features  
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+###  Webcam Features  
+- Live webcam preview  
+- Take snapshot instantly  
+- Show preview after capture  
+- High-quality JPEG/PNG capturing  
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+###  Storage Features  
+- Saves images to:  
+  ```
+  public/uploads/
+  ```
+- Auto-creates folder if missing  
+- Generates unique filenames  
 
-## Laravel Sponsors
+###  Technical Features  
+- Uses **WebcamJS**  
+- Base64 → file conversion in Laravel  
+- Simple controller & Blade integration  
+- No migration or database required  
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+##  Folder Structure  
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```
+app/
+├── Http/
+│   └── Controllers/
+│       └── WebcamController.php
 
-## Contributing
+resources/
+└── views/
+    └── webcam.blade.php
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+routes/
+└── web.php
 
-## Code of Conduct
+public/
+└── uploads/
+    └── *.png / *.jpg
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+#  Step 1 — Install Laravel  
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+composer create-project laravel/laravel webcam-app
+cd webcam-app
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+#  Step 2 — Update .env (Optional)
+
+```
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=base64:xxxxxxxxxxxxxxxxxxxx
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=root
+DB_PASSWORD=
+
+```
+
+---
+
+#  Step 3 — Add Routes  
+
+ **routes/web.php**
+
+```php
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WebcamController;
+
+Route::get('webcam', [WebcamController::class, 'index']);
+Route::post('webcam', [WebcamController::class, 'store'])->name('webcam.capture');
+```
+
+---
+
+#  Step 4 — Create Controller  
+
+Run:
+
+```bash
+php artisan make:controller WebcamController
+```
+
+ **app/Http/Controllers/WebcamController.php**
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+class WebcamController extends Controller
+{
+    public function index()
+    {
+        return view('webcam');
+    }
+
+    public function store(Request $request)
+    {
+        $img = $request->image;
+
+        $folderPath = public_path('uploads/');
+
+        if (!file_exists($folderPath)) {
+            mkdir($folderPath, 0777, true);
+        }
+
+        $image_parts = explode(";base64,", $img);
+        $image_type_aux = explode("image/", $image_parts[0]);
+        $image_base64 = base64_decode($image_parts[1]);
+
+        $fileName = uniqid() . '.png';
+        $file = $folderPath . $fileName;
+
+        file_put_contents($file, $image_base64);
+
+        dd("Image uploaded successfully: uploads/" . $fileName);
+    }
+}
+```
+
+---
+
+#  Step 5 — Create Blade View (UI)  
+
+ **resources/views/webcam.blade.php**
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laravel Webcam Capture Example</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.25/webcam.min.js"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.min.css" />
+
+    <style>
+        #results {
+            padding: 20px;
+            border: 1px solid #333;
+            background: #eee;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2 class="text-center mt-4">📸 Laravel Webcam Capture & Save</h2>
+
+    <form method="POST" action="{{ route('webcam.capture') }}">
+        @csrf
+
+        <div class="row mt-4">
+
+            <div class="col-md-6">
+                <div id="my_camera"></div>
+                <br>
+                <input type="button" class="btn btn-primary" value="Take Snapshot" onClick="take_snapshot()">
+                <input type="hidden" name="image" class="image-tag">
+            </div>
+
+            <div class="col-md-6">
+                <div id="results">Your captured image will appear here...</div>
+            </div>
+
+            <div class="col-md-12 text-center mt-3">
+                <button class="btn btn-success">Submit</button>
+            </div>
+
+        </div>
+
+    </form>
+</div>
+
+<script>
+
+Webcam.set({
+    width: 490,
+    height: 350,
+    image_format: 'jpeg',
+    jpeg_quality: 90
+});
+
+Webcam.attach('#my_camera');
+
+function take_snapshot() {
+    Webcam.snap(function(data_uri) {
+
+        $(".image-tag").val(data_uri);
+
+        document.getElementById('results').innerHTML =
+            '<img src="'+data_uri+'"/>';
+    });
+}
+
+</script>
+
+</body>
+</html>
+```
+
+---
+
+#  Step 6 — Run Laravel  
+
+```bash
+php artisan serve
+```
+
+Open:
+
+```
+http://127.0.0.1:8000/webcam
+```
+
+---
+
+#  Final Output  
+
+✔ Camera opens  
+✔ Snapshot captured  
+✔ Preview shown  
+✔ Image saved in:
+
+```
+public/uploads/unique_name.png
+```
+<img width="1288" height="635" alt="Screenshot 2025-12-11 163333" src="https://github.com/user-attachments/assets/a1b7f52d-5085-4575-ba4c-eb812308e832" />
+
+<img width="862" height="119" alt="Screenshot 2025-12-11 163359" src="https://github.com/user-attachments/assets/a150833b-a912-47c1-ae72-8c6366d6a6d7" />
+
+
+
+✔ Message shown:
+
+```
+Image uploaded successfully: uploads/xxxxxx.png
+```
+
+---
+
+
+
