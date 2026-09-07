@@ -45,4 +45,19 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function images()
+    {
+        return $this->hasMany(Image::class);
+    }
+
+    public function activeImages()
+    {
+        return $this->images()->active();
+    }
+
+    public function trashedImages()
+    {
+        return $this->images()->trashed();
+    }
 }
