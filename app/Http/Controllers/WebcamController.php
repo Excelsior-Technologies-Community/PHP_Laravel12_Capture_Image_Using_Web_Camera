@@ -2,31 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Image;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 
 class WebcamController extends Controller
 {
-    /**
-     * Show webcam page with captured image gallery.
-     */
     public function index()
     {
         $folderPath = public_path('uploads');
-
-        // Create uploads folder if it doesn't exist
         if (!File::exists($folderPath)) {
             File::makeDirectory($folderPath, 0777, true);
         }
 
-        // Get all captured images
         $images = collect(File::files($folderPath))
             ->filter(function ($file) {
-                return in_array(
-                    strtolower($file->getExtension()),
-                    ['jpg', 'jpeg', 'png']
-                );
+                return in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'webp', 'gif']);
             })
             ->sortByDesc(function ($file) {
                 return $file->getMTime();
@@ -35,125 +28,83 @@ class WebcamController extends Controller
         return view('webcam', compact('images'));
     }
 
-    /**
-     * Store captured/edited Base64 image.
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'image' => 'required|string',
-        ]);
+        $request->validate(['image' => 'required|string']);
 
         $img = $request->image;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate Base64 Image
-        |--------------------------------------------------------------------------
-        */
-
-        if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $img)) {
-            return redirect()
-                ->route('webcam.index')
-                ->with('error', 'Invalid image format.');
+        if (!preg_match('/^data:image\/(jpeg|jpg|png|webp|gif);base64,/', $img)) {
+            return redirect()->route('webcam.index')->with('error', 'Invalid image format.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Extract Base64 Data
-        |--------------------------------------------------------------------------
-        */
-
         $imageParts = explode(';base64,', $img);
-
         if (count($imageParts) !== 2) {
-            return redirect()
-                ->route('webcam.index')
-                ->with('error', 'Invalid image data.');
+            return redirect()->route('webcam.index')->with('error', 'Invalid image data.');
         }
 
         $imageBase64 = base64_decode($imageParts[1], true);
-
         if ($imageBase64 === false) {
-            return redirect()
-                ->route('webcam.index')
-                ->with('error', 'Unable to process the image.');
+            return redirect()->route('webcam.index')->with('error', 'Unable to process the image.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Upload Folder
-        |--------------------------------------------------------------------------
-        */
-
         $folderPath = public_path('uploads');
-
         if (!File::exists($folderPath)) {
             File::makeDirectory($folderPath, 0777, true);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Unique Filename
-        |--------------------------------------------------------------------------
-        */
+        $extension = 'png';
+        if (preg_match('/^data:image\/(\w+);base64,/', $img, $matches)) {
+            $extension = $matches[1];
+            if ($extension === 'jpeg') $extension = 'jpg';
+        }
 
-        $fileName = 'webcam_' . uniqid() . '.png';
-
+        $fileName = 'webcam_' . uniqid() . '.' . $extension;
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Save Image
-        |--------------------------------------------------------------------------
-        */
 
         file_put_contents($filePath, $imageBase64);
 
-        return redirect()
-            ->route('webcam.index')
-            ->with('success', 'Image captured and saved successfully!');
-    }
+        $imageSize = File::size($filePath);
+        $imageInfo = getimagesize($filePath);
+        $width = $imageInfo[0] ?? null;
+        $height = $imageInfo[1] ?? null;
 
-    /**
-     * Download captured image.
-     */
-    public function download($filename)
-    {
-        // Prevent directory traversal
-        $filename = basename($filename);
-
-        $filePath = public_path('uploads/' . $filename);
-
-        if (!File::exists($filePath)) {
-            return redirect()
-                ->route('webcam.index')
-                ->with('error', 'Image not found.');
+        if (Auth::check()) {
+            Image::create([
+                'user_id' => Auth::id(),
+                'filename' => $fileName,
+                'original_filename' => 'capture_' . date('Ymd_His') . '.' . $extension,
+                'mime_type' => mime_content_type($filePath),
+                'size' => $imageSize,
+                'width' => $width,
+                'height' => $height,
+                'tags' => [],
+                'caption' => null,
+                'is_deleted' => false,
+                'metadata' => [],
+            ]);
         }
 
+        return redirect()->route('webcam.index')->with('success', 'Image captured and saved successfully!');
+    }
+
+    public function download($filename)
+    {
+        $filename = basename($filename);
+        $filePath = public_path('uploads/' . $filename);
+        if (!File::exists($filePath)) {
+            return redirect()->route('webcam.index')->with('error', 'Image not found.');
+        }
         return Response::download($filePath, $filename);
     }
 
-    /**
-     * Delete captured image.
-     */
     public function destroy($filename)
     {
-        // Prevent directory traversal
         $filename = basename($filename);
-
         $filePath = public_path('uploads/' . $filename);
-
         if (!File::exists($filePath)) {
-            return redirect()
-                ->route('webcam.index')
-                ->with('error', 'Image not found.');
+            return redirect()->route('webcam.index')->with('error', 'Image not found.');
         }
-
         File::delete($filePath);
-
-        return redirect()
-            ->route('webcam.index')
-            ->with('success', 'Image deleted successfully!');
+        return redirect()->route('webcam.index')->with('success', 'Image deleted successfully!');
     }
 }
